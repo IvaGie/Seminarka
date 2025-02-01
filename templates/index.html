@@ -4,38 +4,129 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Úprava Obrázků</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4e1e1; /* Světle hnědá barva pro pozadí */
+            font-family: 'Arial', sans-serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #c5a1a1; /* Světle hnědá pro pozadí kontejneru */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h2, h3 {
+            color: #370514; /* Tmavě červená barva pro nadpisy */
+        }
+        .btn-custom {
+            background-color: #370514; /* Tmavě červená */
+            color: white;
+            border: none;
+            margin: 5px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-custom:hover {
+            background-color: #3a1919; /* Tmavší červená při hoveru */
+        }
+        .btn-primary {
+            background-color: #5c1f1f; /* Tmavě červená pro tlačítko "Nahrát obrázek" */
+            border-color: #451717; /* Tmavší okraj */
+        }
+        .btn-primary:focus, .btn-primary:active {
+            background-color: #5c1f1f; /* Zajistí, že barva nezmění při kliknutí */
+            border-color: #451717; /* Okraj zůstane stejný */
+        }
+        .btn-success {
+            background-color: #7b3e2f; /* Hnědá barva pro tlačítko "Stáhnout obrázek" */
+            border-color: #63302a; /* Tmavší hnědý okraj */
+        }
+        .btn-success:hover, .btn-success:focus, .btn-success:active {
+            background-color: #7b3e2f; /* Zajistí, že barva nezmění při kliknutí nebo hoveru */
+            border-color: #63302a; /* Okraj zůstane stejný */
+        }
+        .btn-secondary {
+            background-color: #4b5053;
+            border: none;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5053;
+        }
+        .image-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        img {
+            max-width: 90%;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        input[type="number"] {
+            width: 100px;
+        }
+        .download-link {
+            margin-top: 20px;
+        }
+        #fileInput:focus {
+            border-color: #370514; /* Tmavě červená barva pro rámeček */
+            box-shadow: 0 0 0 0.25rem rgb(197, 161, 161); /* Jemný hnědý stín pro zaostřené pole */
+        }
+        /* Změní pozadí a text v inputu */
+        #fileInput {
+            background-color: #f8d9d9; /* Světle růžová pro pozadí */
+            color: #370514; /* Tmavě červená pro text */
+        }
+    </style>
 </head>
 <body>
-    <h2>Nahraj obrázek</h2>
-    <form id="uploadForm" enctype="multipart/form-data">
-        <input type="file" id="fileInput" name="file" accept="image/*">
-        <button type="submit">Nahrát</button>
-    </form>
 
-    <br>
-    <h3>Původní obrázek</h3>
-    <img id="originalImage" style="max-width: 100%; display: none;" alt="Původní obrázek">
+    <div class="container">
+        <h2 class="text-center">Úprava obrázků</h2>
 
-    <h3>Upravený obrázek</h3>
-    <img id="outputImage" style="display: none; width: auto; height: auto;" alt="Upravený obrázek">
+        <form id="uploadForm" enctype="multipart/form-data" class="mb-4">
+            <div class="mb-3">
+                <label for="fileInput" class="form-label">Nahrát obrázek:</label>
+                <input type="file" id="fileInput" name="file" accept="image/*" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Nahrát obrázek</button>
+        </form>
 
-    <br>
-    <button onclick="applyFilter('negative')">Negativ</button>
-    <button onclick="applyFilter('lighter')">Zesvětlit</button>
-    <button onclick="applyFilter('darker')">Ztmavit</button>
-    <button onclick="applyFilter('smaller')">Zmenšit</button>
-    <button onclick="resetImage()">Obnovit původní obrázek</button>
-    <button onclick="applyFilter('solarization')">Solarizace</button>
-    <button onclick="applyFilter('edges')">Zvýrazni hrany</button>
+        <div class="image-container">
+            <div>
+                <h3>Původní obrázek</h3>
+                <img id="originalImage" style="display: none;" alt="Původní obrázek">
+            </div>
+            <div>
+                <h3>Upravený obrázek</h3>
+                <img id="outputImage" style="display: none;" alt="Upravený obrázek">
+            </div>
+        </div>
 
+        <div class="mt-4">
+            <button class="btn-custom" onclick="applyFilter('negative')">Negativ</button>
+            <button class="btn-custom" onclick="applyFilter('lighter')">Zesvětlit</button>
+            <button class="btn-custom" onclick="applyFilter('darker')">Ztmavit</button>
+            <button class="btn-custom" onclick="applyFilter('smaller')">Zmenšit</button>
+            <button class="btn-custom" onclick="applyFilter('solarization')">Solarizace</button>
+            <button class="btn-custom" onclick="applyFilter('edges')">Zvýrazni hrany</button>
+            <button class="btn-secondary" onclick="resetImage()">Obnovit původní obrázek</button>
+        </div>
 
+        <div class="mt-4">
+            <label for="intensity">Intenzita zesvetleni/ztmaveni:</label>
+            <input type="number" id="intensity" value="20" min="5" max="50">
+        </div>
 
-    <br><br>
-    <label for="intensity">Intenzita (%):</label>
-    <input type="number" id="intensity" value="20" min="5" max="50">
-
-    <br><br>
-    <a id="downloadLink" style="display:none" download="processed_image.jpg">Stáhnout upravený obrázek</a>
+        <div class="download-link">
+            <a id="downloadLink" style="display:none" class="btn btn-success" download="processed_image.jpg">Stáhnout upravený obrázek</a>
+        </div>
+    </div>
 
     <script>
         let originalImageUrl = "";
