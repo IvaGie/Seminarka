@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Úprava Obrázků</title>
+</head>
+<body>
+    <h2>Nahraj obrázek</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" accept="image/*">
+        <button type="submit">Nahrát</button>
+    </form>
+
+    <br>
+    <h3>Původní obrázek</h3>
+    <img id="originalImage" style="max-width: 500px; display: none;" alt="Původní obrázek">
+
+    <h3>Upravený obrázek</h3>
+    <img id="outputImage" style="max-width: 500px; display: none;" alt="Upravený obrázek">
+
+    <br>
+    <button onclick="applyFilter('negative')">Negativ</button>
+    <button onclick="applyFilter('lighter')">Zesvětlit</button>
+    <button onclick="applyFilter('darker')">Ztmavit</button>
+    <button onclick="applyFilter('smaller')">Zmenšit</button>
+
+    <br><br>
+    <label for="intensity">Intenzita (%):</label>
+    <input type="number" id="intensity" value="20" min="5" max="50">
+
+    <br><br>
+    <a id="downloadLink" style="display:none" download="processed_image.jpg">Stáhnout upravený obrázek</a>
+
+    <script>
+        let originalImageUrl = "";
+        let currentImageUrl = "";
+
+        // Funkce pro nahrání obrázku
+        document.getElementById("uploadForm").onsubmit = async function(event) {
+            event.preventDefault();
+            let file = document.getElementById("fileInput").files[0];
+            if (!file) {
+                alert("Vyberte soubor!");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("file", file);
+
+            let response = await fetch("/upload", {
+                method: "POST",
+                body: formData
+            });
+
+            let data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                originalImageUrl = data.original_image;
+                currentImageUrl = data.current_image;
+                updateImages();
+            }
+        };
+
+        // Funkce pro aplikaci filtru na obrázek
+        async function applyFilter(filter) {
+            let intensity = document.getElementById("intensity").value;
+
+            let response = await fetch(`/filter/${filter}?percent=${intensity}`);
+            let data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                currentImageUrl = data.image_url;
+                updateImages();
+            }
+        }
+
+        // Aktualizace zobrazených obrázků
+        function updateImages() {
+            document.getElementById("originalImage").src = originalImageUrl + "?" + new Date().getTime();
+            document.getElementById("originalImage").style.display = "block";
+
+            document.getElementById("outputImage").src = currentImageUrl + "?" + new Date().getTime();
+            document.getElementById("outputImage").style.display = "block";
+
+            document.getElementById("downloadLink").href = currentImageUrl;
+            document.getElementById("downloadLink").style.display = "block";
+        }
+    </script>
+</body>
+</html>

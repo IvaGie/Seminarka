@@ -1,14 +1,18 @@
-from flask import Flask, render_template, send_file, redirect, url_for
+from urllib import request
+
+from flask import Flask, render_template, send_file, jsonify, request
 import imageio.v2 as imageio
 import numpy as np
 import os
 
 app = Flask(__name__)
 
-# Cesta k obrázku
-img_path = 'static/original_image.jpg'
+# Define the paths to the original and current images
+uploads_dir = 'static/uploads'
+os.makedirs(uploads_dir, exist_ok=True)
 
-# Funkce pro zpracování obrázků
+
+# Image processing functions (same as before)
 def is_blackAndWhite(img_array):
     if len(img_array.shape) == 2:
         return True
@@ -17,18 +21,22 @@ def is_blackAndWhite(img_array):
             return True
     return False
 
+
 def convert_to_negativ(img_array):
     return 255 - img_array
 
+
 def convert_to_lighter(img_array, percent_lighter):
-    increase = img_array * percent_lighter
+    increase = img_array * (percent_lighter / 100)
     lightened = np.clip(img_array + increase, 0, 255)
     return lightened.astype(np.uint8)
 
+
 def convert_to_darker(img_array, percent_darker):
-    increase = img_array * percent_darker
+    increase = img_array * (percent_darker / 100)
     darkened = np.clip(img_array - increase, 0, 255)
     return darkened.astype(np.uint8)
+
 
 def make_smaller(img_array):
     if is_blackAndWhite(img_array):
@@ -39,52 +47,69 @@ def make_smaller(img_array):
         blue_channel = img_array[::2, ::2, 2]
         return np.stack([red_channel, green_channel, blue_channel], axis=-1)
 
-# Domovská stránka s tlačítky
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Funkce pro každé tlačítko
-@app.route('/negative')
+
+# Routes for applying filters
+@app.route('/filter/negative', methods=['GET'])
 def negative():
-    img_array = imageio.imread(img_path)
+    img_array = imageio.imread('static/uploads/original_image.jpg')
     negative_picture = convert_to_negativ(img_array)
-    output_path = 'static/negative_image.jpg'
+    output_path = 'static/uploads/negative_image.jpg'
     imageio.imwrite(output_path, negative_picture)
-    return send_file(output_path, mimetype='image/jpeg')
+    return jsonify({"image_url": f"/{output_path}"})
 
-@app.route('/+')
-def percent_lighter():
-   percent = 0
-   return percent_lighter + 0,5
 
-@app.route('/-')
-def percent_darker():
-   percent = 0
-   return percent_darker - 0,5
-@app.route('/lighter')
+@app.route('/filter/lighter', methods=['GET'])
 def lighter():
-    img_array = imageio.imread(img_path)
-    lighter_picture = convert_to_lighter(img_array)
-    output_path = 'static/lighter_image.jpg'
+    intensity = float(request.args.get('percent', 20))  # default is 20%
+    img_array = imageio.imread('static/uploads/original_image.jpg')
+    lighter_picture = convert_to_lighter(img_array, intensity)
+    output_path = 'static/uploads/lighter_image.jpg'
     imageio.imwrite(output_path, lighter_picture)
-    return send_file(output_path, mimetype='image/jpeg')
+    return jsonify({"image_url": f"/{output_path}"})
 
-@app.route('/darker')
+
+@app.route('/filter/darker', methods=['GET'])
 def darker():
-    img_array = imageio.imread(img_path)
-    darker_picture = convert_to_darker(img_array)
-    output_path = 'static/darker_image.jpg'
+    intensity = float(request.args.get('percent', 20))  # default is 20%
+    img_array = imageio.imread('static/uploads/original_image.jpg')
+    darker_picture = convert_to_darker(img_array, intensity)
+    output_path = 'static/uploads/darker_image.jpg'
     imageio.imwrite(output_path, darker_picture)
-    return send_file(output_path, mimetype='image/jpeg')
+    return jsonify({"image_url": f"/{output_path}"})
 
-@app.route('/smaller')
+
+@app.route('/filter/smaller', methods=['GET'])
 def smaller():
-    img_array = imageio.imread(img_path)
+    img_array = imageio.imread('static/uploads/original_image.jpg')
     smaller_picture = make_smaller(img_array)
-    output_path = 'static/smaller_image.jpg'
+    output_path = 'static/uploads/smaller_image.jpg'
     imageio.imwrite(output_path, smaller_picture)
-    return send_file(output_path, mimetype='image/jpeg')
+    return jsonify({"image_url": f"/{output_path}"})
+
+
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    file = request.files["file"]
+    if not file or file.filename == "":
+        return jsonify({"error": "No file selected"})
+
+    original_image_path = os.path.join(uploads_dir, 'original_image.jpg')
+    file.save(original_image_path)
+
+    # Save a copy for the current image that will be processed
+    imageio.imwrite(original_image_path, imageio.imread(original_image_path))
+
+    # Return the URLs for both images
+    return jsonify({
+        "original_image": f"/static/uploads/original_image.jpg",
+        "current_image": f"/static/uploads/original_image.jpg"
+    })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
