@@ -24,6 +24,11 @@
     <button onclick="applyFilter('lighter')">Zesvětlit</button>
     <button onclick="applyFilter('darker')">Ztmavit</button>
     <button onclick="applyFilter('smaller')">Zmenšit</button>
+    <button onclick="resetImage()">Obnovit původní obrázek</button>
+    <button onclick="applyFilter('solarization')">Solarizace</button>
+    <button onclick="applyFilter('edges')">Zvýrazni hrany</button>
+
+
 
     <br><br>
     <label for="intensity">Intenzita (%):</label>
@@ -74,6 +79,17 @@
             if (data.error) {
                 alert(data.error);
             } else {
+                currentImageUrl = data.image_url;
+                updateImages();
+            }
+        }
+
+        // Funkce pro obnovení původního obrázku
+        async function resetImage() {
+            let response = await fetch('/filter/reset');
+            let data = await response.json();
+
+            if (data.image_url) {
                 currentImageUrl = data.image_url;
                 updateImages();
             }

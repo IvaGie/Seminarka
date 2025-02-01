@@ -1,10 +1,8 @@
-import time
-
-from flask import Flask, render_template, send_file, jsonify, request
+from flask import Flask, render_template, jsonify, request
 import imageio.v2 as imageio
 import numpy as np
 import os
-
+import cv2
 app = Flask(__name__)
 
 # Define the paths to the original and current images
@@ -27,15 +25,16 @@ def convert_to_negativ(img_array):
 
 
 def convert_to_lighter(img_array, percent_lighter):
-    increase = img_array * (percent_lighter / 100)
-    lightened = np.clip(img_array + increase, 0, 255)
-    return lightened.astype(np.uint8)
-
+    if is_blackAndWhite(img_array) == False:
+        increase = img_array * (percent_lighter / 100)
+        lightened = np.clip(img_array + increase, 0, 255)
+        return lightened.astype(np.uint8)
 
 def convert_to_darker(img_array, percent_darker):
-    increase = img_array * (percent_darker / 100)
-    darkened = np.clip(img_array - increase, 0, 255)
-    return darkened.astype(np.uint8)
+    if is_blackAndWhite(img_array) == False:
+        increase = img_array * (percent_darker / 100)
+        darkened = np.clip(img_array - increase, 0, 255)
+        return darkened.astype(np.uint8)
 
 
 def make_smaller(img_array):
@@ -49,18 +48,56 @@ def make_smaller(img_array):
 
 
 
+def highlight_edges(img_array):
+    gray_image = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
+
+    sobel_x = cv2.Sobel(gray_image, cv2.CV_64F, 1, 0, ksize=3)
+    sobel_y = cv2.Sobel(gray_image, cv2.CV_64F, 0, 1, ksize=3)
+
+    edges = cv2.magnitude(sobel_x, sobel_y)
+    edges = cv2.convertScaleAbs(edges)
+
+    return edges
+
+def make_solarization(img_array, threshold=128):
+    # Solarizace obrázku na základě prahu
+    img_array = img_array.astype(np.float32)  # Převod na float32 pro manipulaci s hodnotami
+
+    # Aplikace solarizace na každý pixel (kanály R, G, B)
+    mask = img_array > threshold
+    img_array[mask] = 255 - img_array[mask]  # Invertování hodnot, které jsou nad prahem
+
+    img_array = np.clip(img_array, 0, 255)  # Zajištění, že hodnoty zůstanou v rozsahu 0-255
+    return img_array.astype(np.uint8)  # Převod zpět na uint8 pro zobrazení obrázku
+
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
 
+
+@app.route('/filter/edges', methods=['GET'])
+def edges():
+    img_array = imageio.imread('static/uploads/current_image.jpg')
+    edges_image = highlight_edges(img_array)
+    output_path = 'static/uploads/current_image.jpg'
+    imageio.imwrite(output_path, edges_image)
+    return jsonify({"image_url": f"/{output_path}"})
+@app.route('/filter/solarization', methods=['GET'])
+def solarization():
+    img_array = imageio.imread('static/uploads/current_image.jpg')
+    solarization_picture = make_solarization(img_array)
+    output_path = 'static/uploads/current_image.jpg'
+    imageio.imwrite(output_path, solarization_picture)
+    return jsonify({"image_url": f"/{output_path}"})
+
 # Routes for applying filters
 @app.route('/filter/negative', methods=['GET'])
 def negative():
-    img_array = imageio.imread('static/uploads/original_image.jpg')
+    img_array = imageio.imread('static/uploads/current_image.jpg')
     negative_picture = convert_to_negativ(img_array)
-    output_path = 'static/uploads/negative_image.jpg'
+    output_path = 'static/uploads/current_image.jpg'
     imageio.imwrite(output_path, negative_picture)
     return jsonify({"image_url": f"/{output_path}"})
 
@@ -93,11 +130,26 @@ def darker():
 
 @app.route('/filter/smaller', methods=['GET'])
 def smaller():
-    img_array = imageio.imread('static/uploads/original_image.jpg')
-    smaller_picture = make_smaller(img_array)
-    output_path = 'static/uploads/smaller_image_' + str(int(time.time())) + '.jpg'
-    imageio.imwrite(output_path, smaller_picture)
+    # Načteme aktuální obrázek, který byl upravený (např. po aplikaci filtru)
+    img_array = imageio.imread('static/uploads/current_image.jpg')  # Pracujeme s aktuálním obrázkem
+    smaller_picture = make_smaller(img_array)  # Zmenšíme aktuální obrázek
+    output_path = 'static/uploads/current_image.jpg'  # Přepíšeme aktuální obrázek zmenšeným obrázkem
+    imageio.imwrite(output_path, smaller_picture)  # Uložíme zmenšený obrázek zpět na stejnou cestu
     return jsonify({"image_url": f"/{output_path}"})
+
+
+
+# Route to reset the image to the original one (clear all filters)
+@app.route('/filter/reset', methods=['GET'])
+def reset():
+    # Reload the original image as the current image
+    original_image_path = 'static/uploads/original_image.jpg'
+    current_image_path = 'static/uploads/current_image.jpg'
+
+    # Re-save the original image as current image to reset any applied filters
+    imageio.imwrite(current_image_path, imageio.imread(original_image_path))
+
+    return jsonify({"image_url": f"/{current_image_path}"})
 
 
 @app.route("/upload", methods=["POST"])
@@ -118,7 +170,6 @@ def upload_file():
         "original_image": f"/static/uploads/original_image.jpg",
         "current_image": f"/static/uploads/current_image.jpg"
     })
-
 
 
 if __name__ == '__main__':
