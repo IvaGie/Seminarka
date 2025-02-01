@@ -1,0 +1,11 @@
+Zápočet
+Zápočet bude udělen za úspěšně odevzdaný a obhájený projekt, kterým bude aplikace napsaná pomocí Numpy na základní úpravy obrázků. Rozhraní bude webové, serverová a výpočetní část poběží v Pythonu. Projekt bude vypracován pomocí verzování, např. git – odevzdání bez historie nebo s podezřele krátkou historií se nepokládá za úspěšné! Aplikace musí umět přinejmenším:
+
+rozlišení práce s černobílými versus barevnými obrázky;
+převod do negativu (černobílého i barevného);
+efekt solarizace;
+zesvětlení a ztmavení obrázku;
+zmenšení obrázku (odvážlivci můžou zkusit i nějakou formu zvětšení);
+efekt zvýraznění hran (s výběrem možností);
+...
+PS: Požadovanou funkcionalitu často poskytuje přímo knihovna Pillow, nicméně není v ní všechno a navíc jsou některé operace pomocí broadcastingu zajímavější přímo v Numpy. Každopádně úkolem je připravit pěkný a přehledný „editor“ obrázků, takže se soustřeďte spíše na to.
