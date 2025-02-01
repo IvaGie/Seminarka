@@ -1,4 +1,4 @@
-from urllib import request
+import time
 
 from flask import Flask, render_template, send_file, jsonify, request
 import imageio.v2 as imageio
@@ -12,7 +12,7 @@ uploads_dir = 'static/uploads'
 os.makedirs(uploads_dir, exist_ok=True)
 
 
-# Image processing functions (same as before)
+# Image processing functions
 def is_blackAndWhite(img_array):
     if len(img_array.shape) == 2:
         return True
@@ -48,6 +48,8 @@ def make_smaller(img_array):
         return np.stack([red_channel, green_channel, blue_channel], axis=-1)
 
 
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -66,20 +68,26 @@ def negative():
 @app.route('/filter/lighter', methods=['GET'])
 def lighter():
     intensity = float(request.args.get('percent', 20))  # default is 20%
-    img_array = imageio.imread('static/uploads/original_image.jpg')
+    img_array = imageio.imread('static/uploads/current_image.jpg')  # Always work with the current image
     lighter_picture = convert_to_lighter(img_array, intensity)
-    output_path = 'static/uploads/lighter_image.jpg'
+
+    # Save the modified image as the current image
+    output_path = 'static/uploads/current_image.jpg'
     imageio.imwrite(output_path, lighter_picture)
+
     return jsonify({"image_url": f"/{output_path}"})
 
 
 @app.route('/filter/darker', methods=['GET'])
 def darker():
     intensity = float(request.args.get('percent', 20))  # default is 20%
-    img_array = imageio.imread('static/uploads/original_image.jpg')
+    img_array = imageio.imread('static/uploads/current_image.jpg')  # Always work with the current image
     darker_picture = convert_to_darker(img_array, intensity)
-    output_path = 'static/uploads/darker_image.jpg'
+
+    # Save the modified image as the current image
+    output_path = 'static/uploads/current_image.jpg'
     imageio.imwrite(output_path, darker_picture)
+
     return jsonify({"image_url": f"/{output_path}"})
 
 
@@ -87,7 +95,7 @@ def darker():
 def smaller():
     img_array = imageio.imread('static/uploads/original_image.jpg')
     smaller_picture = make_smaller(img_array)
-    output_path = 'static/uploads/smaller_image.jpg'
+    output_path = 'static/uploads/smaller_image_' + str(int(time.time())) + '.jpg'
     imageio.imwrite(output_path, smaller_picture)
     return jsonify({"image_url": f"/{output_path}"})
 
@@ -98,17 +106,19 @@ def upload_file():
     if not file or file.filename == "":
         return jsonify({"error": "No file selected"})
 
+    # Save original image as the base
     original_image_path = os.path.join(uploads_dir, 'original_image.jpg')
     file.save(original_image_path)
 
-    # Save a copy for the current image that will be processed
-    imageio.imwrite(original_image_path, imageio.imread(original_image_path))
+    # Set the current image as the original image for initial view
+    current_image_path = os.path.join(uploads_dir, 'current_image.jpg')
+    imageio.imwrite(current_image_path, imageio.imread(original_image_path))
 
-    # Return the URLs for both images
     return jsonify({
         "original_image": f"/static/uploads/original_image.jpg",
-        "current_image": f"/static/uploads/original_image.jpg"
+        "current_image": f"/static/uploads/current_image.jpg"
     })
+
 
 
 if __name__ == '__main__':
